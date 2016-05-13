@@ -3,12 +3,20 @@ using System.Collections;
 
 public class Edge : MonoBehaviour {
 
-	Node top;
-	Node bot;
+	GameObject top;
+	GameObject bot;
 
 	// Use this for initialization
 	void Start () {
 	
+	}
+
+	void OnEnable () {
+		WorldManager.OnMoved += RelocateEndNodes;
+	}
+
+	void OnDisable () {
+		WorldManager.OnMoved -= RelocateEndNodes;
 	}
 	
 	// Update is called once per frame
@@ -16,18 +24,30 @@ public class Edge : MonoBehaviour {
 	
 	}
 
-	void AssignNode ( Node tp, Node bt)
+	public void AssignNode ( GameObject tp, GameObject bt)
 	{
 		top = tp;
 		bot = bt;
+		ShapeConnector ();
+	}
+
+	void RelocateEndNodes(GameObject node) {
+		if (node == top || node == bot) {
+			ShapeConnector ();
+		}
 	}
 
 	void ShapeConnector () {
 		Vector3 distance = top.transform.position - bot.transform.position;
 		Vector3 midPos = distance / 2.0f + bot.transform.position;
 		Vector3 scale = transform.localScale;
-		scale.z = distance.magnitude;
+		transform.position = midPos;
+		scale.z = distance.magnitude/2.0f;
 		transform.localScale = scale;
-		transform.rotation = Quaternion.FromToRotation (Vector3.up, distance);
+		transform.LookAt (bot.transform.position);
+	}
+
+	public string ToString() {
+		return "\t\t - [" + top.GetComponent<Node>().nodeName + ", " + bot.GetComponent<Node>().nodeName + "]";
 	}
 }
