@@ -25,6 +25,14 @@ public class StringCon : MonoBehaviour {
 	
 	}
 
+	void OnMouseEnter() {
+		transform.FindChild("Cylinder").transform.GetComponent<Renderer> ().material.color = Color.red;
+	}
+
+	void OnMouseExit() {
+		transform.FindChild("Cylinder").transform.GetComponent<Renderer> ().material.color = Color.black;
+	}
+
 	public void AssignNode ( GameObject tp, GameObject bt)
 	{
 		top = tp;

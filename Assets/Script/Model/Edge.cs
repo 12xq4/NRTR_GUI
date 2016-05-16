@@ -24,6 +24,14 @@ public class Edge : MonoBehaviour {
 	
 	}
 
+	void OnMouseEnter() {
+		transform.FindChild("Cylinder").transform.GetComponent<Renderer> ().material.color = Color.red;
+	}
+
+	void OnMouseExit() {
+		transform.FindChild("Cylinder").transform.GetComponent<Renderer> ().material.color = Color.gray;
+	}
+
 	public void AssignNode ( GameObject tp, GameObject bt)
 	{
 		top = tp;

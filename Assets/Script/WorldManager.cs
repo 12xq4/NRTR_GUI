@@ -3,6 +3,14 @@ using System.Collections;
 using UnityEngine.UI;
 using System.IO;
 
+
+/*	Notes:
+ * Reverse z and y for users' understanding.
+ * Define a structure which can read YAML and import it into scene;
+ * 
+*/ 
+
+
 public class WorldManager : MonoBehaviour {
 	public delegate void OnNodeChanged(GameObject changed); 
 	public static event OnNodeChanged OnMoved;
@@ -46,37 +54,49 @@ public class WorldManager : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 		currentPosition = viewCam.ScreenToWorldPoint (Input.mousePosition);
-
+		PerspectiveControl ();
 		CameraDrag ();
 		CameraSwitch ();
 		ModeSwitch ();
 
-		if (Input.GetKey (KeyCode.Escape)) {
+		if (Input.GetKeyDown (KeyCode.Escape)) {
 			CleanUp ();
 			mode = Mode.Select;
 		}
 		if (mode == Mode.Select) {
 			// select an object.
+			// Adding select rods/strings
 			if (Input.GetMouseButtonDown (0)) {
 				RaycastHit hit;
 				Ray ray = viewCam.ScreenPointToRay (Input.mousePosition);
 				if (Physics.Raycast (ray, out hit)) {
-					if (hit.transform.tag == "Node")
-						selected = hit.transform.gameObject;
+					selected = hit.transform.gameObject;
 				}
 			}
 			// follow mouse position for the meanwhile.
-			if (Input.GetMouseButton (0) && selected != null)
-				FollowMouseDrag ();
-			// Drop object.
-			if (Input.GetMouseButtonUp (0) && selected != null) {
-				selected = null;
+			if (selected != null) {
+				if (selected.transform.tag == "Node") {
+					if (Input.GetMouseButton (0) && selected != null)
+						FollowMouseDrag ();
+					// Drop object.
+					if (Input.GetMouseButtonUp (0) && selected != null) {
+						selected.GetComponent<Renderer> ().material.color = Color.white;
+						selected = null;
+					}
+				} else {
+					selected.transform.FindChild ("Cylinder").transform.GetComponent<Renderer> ().material.color = Color.red;
+					if (Input.GetKeyDown (KeyCode.Delete) || Input.GetKey (KeyCode.Backspace)) {
+						Destroy (selected);
+						CleanUp ();
+					} 
+				}
 			}
 		} else if (mode == Mode.Place_Node) {
 			if (selected == null)
 				selected = Instantiate (node, new Vector3 (), Quaternion.Euler (0, 0, 0)) as GameObject;
 			FollowMouseDrag ();
 			if (Input.GetMouseButtonDown (0) && selected != null) {
+				selected.GetComponent<Renderer> ().material.color = Color.white;
 				selected = null;
 			}
 		} else if (mode == Mode.Place_Rod) {
@@ -168,6 +188,32 @@ public class WorldManager : MonoBehaviour {
 	}
 
 	/*
+	 	* Implement a perspective camera for which users could browse their work.
+	 	* Doesn't show any numbers.
+	 	* 
+	 	* - Fix Camera angle problem (best solution is to clamp the cameras) 
+	 */ 
+	void PerspectiveControl(){
+		if (Input.GetKey (KeyCode.LeftArrow)) {
+			Camera.main.transform.RotateAround (Vector3.zero, Vector3.up, 30 * Time.deltaTime);
+		} else if (Input.GetKey (KeyCode.RightArrow)) {
+			Camera.main.transform.RotateAround (Vector3.zero, Vector3.up, -30 * Time.deltaTime);
+		} else if (Input.GetKey (KeyCode.UpArrow)) {
+			// Camera.main.transform.RotateAround (Vector3.zero, Vector3.right, 30 * Time.deltaTime);
+			if (Camera.main.transform.rotation.eulerAngles.x < 89 || Camera.main.transform.rotation.eulerAngles.x > 271) {
+				Camera.main.transform.Translate (new Vector3 (0, 10, 0) * Time.deltaTime);
+				Camera.main.transform.LookAt (new Vector3(0,10,0));
+			}
+		} else if (Input.GetKey (KeyCode.DownArrow)) {
+			// Camera.main.transform.RotateAround (Vector3.zero, Vector3.right, -30 * Time.deltaTime);
+			if (Camera.main.transform.rotation.eulerAngles.x > 271 || Camera.main.transform.rotation.eulerAngles.x < 89) {
+				Camera.main.transform.Translate (new Vector3 (0, -10, 0) * Time.deltaTime);
+				Camera.main.transform.LookAt (new Vector3(0,10,0));
+			}
+		}
+	}
+
+	/*
 	 	* This is used to switch editing mode.
 	 	* 
 	 */ 
@@ -203,10 +249,12 @@ public class WorldManager : MonoBehaviour {
 
 	/*
 	 	* This function define a dragging behavior.
+	 	* - Implement a structure where adding to the negative y-axis/height is not accepted.
 	 	* 
 	 */ 
 	void FollowMouseDrag() {
 		Vector3 worldMousePos = new Vector3();
+		selected.GetComponent<Renderer> ().material.color = Color.red;
 		if (mode == Mode.Select && selected != null) {
 			if (view == ViewDir.Front) {
 				worldMousePos.x = Mathf.Floor (currentPosition.x);
@@ -262,8 +310,16 @@ public class WorldManager : MonoBehaviour {
 			}
 			selected.transform.position = worldMousePos; 
 		}
-		Coord.text = "X: " + selected.transform.position.x + "    " + "Y: " + selected.transform.position.y + "    "
-			+ "Z: " + selected.transform.position.z + "\n";
+		// restricting placement of nodes below 0 height. i.e. in the ground.
+		if (selected.transform.position.y < 0) {
+			Debug.Log ("Cannot Place Node below ground");
+			Vector3 newPos = selected.transform.position;
+			newPos.y = 0;
+			selected.transform.position = newPos;
+		}
+
+		Coord.text = "X: " + selected.transform.position.x + "    " + "Y: " + selected.transform.position.z + "    "
+			+ "Z: " + selected.transform.position.y + "\n";
 
 		if (OnMoved != null) {
 			OnMoved (selected);
@@ -272,7 +328,8 @@ public class WorldManager : MonoBehaviour {
 
 	void CleanUp() {
 		if (selected != null) {
-			Destroy (selected);
+			if (selected.transform.tag == "Node")
+				Destroy (selected);
 			selected = null;
 		}
 		if (topNode != null)
@@ -281,6 +338,15 @@ public class WorldManager : MonoBehaviour {
 			botNode = null;
 	}
 
+	void ImportFromYAML() {
+		
+	}
+
+	/*
+	 	* This method builds the Yaml file.
+	 	* Note this will write any existing yaml file with the name "build.yaml". To prevent overwriting, rename
+	 	* your saved build file to something else.
+	 */ 
 	void ExportToYAML() {
 		var filename = "build.yaml";
 		var Nodes = GameObject.FindGameObjectsWithTag ("Node");
@@ -291,22 +357,38 @@ public class WorldManager : MonoBehaviour {
 		Debug.Log (Strs.Length);
 
 		if (File.Exists (filename)) {
-			return;
+			var file = File.CreateText ("temp.txt");
+			file.WriteLine ("nodes:");
+			for (int i = 0; i < Nodes.Length; i++) {
+				file.WriteLine (Nodes [i].GetComponent<Node> ().ToString ());
+			}
+			file.WriteLine ("pair_groups:");
+			file.WriteLine ("\trod:");
+			for (int i = 0; i < Rods.Length; i++) {
+				file.WriteLine (Rods [i].GetComponent<Edge> ().ToString ());
+			}
+			file.WriteLine ("\tstring:");
+			for (int i = 0; i < Strs.Length; i++) {
+				file.WriteLine (Strs [i].GetComponent<StringCon> ().ToString ());
+			}
+			file.Close ();
+			File.Replace ("temp.txt", filename, null); 
+		} else {
+			var file = File.CreateText (filename);
+			file.WriteLine ("nodes:");
+			for (int i = 0; i < Nodes.Length; i++) {
+				file.WriteLine (Nodes [i].GetComponent<Node> ().ToString ());
+			}
+			file.WriteLine ("pair_groups:");
+			file.WriteLine ("\trod:");
+			for (int i = 0; i < Rods.Length; i++) {
+				file.WriteLine (Rods [i].GetComponent<Edge> ().ToString ());
+			}
+			file.WriteLine ("\tstring:");
+			for (int i = 0; i < Strs.Length; i++) {
+				file.WriteLine (Strs [i].GetComponent<StringCon> ().ToString ());
+			}
+			file.Close ();
 		}
-		var file = File.CreateText (filename);
-		file.WriteLine ("nodes:");
-		for (int i = 0; i < Nodes.Length; i++) {
-			file.WriteLine (Nodes[i].GetComponent<Node>().ToString());
-		}
-		file.WriteLine ("pair_groups:");
-		file.WriteLine ("\trod:");
-		for (int i = 0; i < Rods.Length; i++) {
-			file.WriteLine (Rods[i].GetComponent<Edge>().ToString());
-		}
-		file.WriteLine ("\tstring:");
-		for (int i = 0; i < Strs.Length; i++) {
-			file.WriteLine (Strs[i].GetComponent<StringCon>().ToString());
-		}
-		file.Close ();
 	}
 }
