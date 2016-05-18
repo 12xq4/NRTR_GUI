@@ -12,6 +12,7 @@ using YamlDotNet.RepresentationModel;
  * Reverse z and y for users' understanding.
  * Define a structure which can read YAML and import it into scene;
  * Yaml use spaces for indentation, not tabs. Make sure i fix that
+ * Figure out a shared unit of work
  * 
 */ 
 
@@ -145,7 +146,6 @@ public class WorldManager : MonoBehaviour {
 				botNode = null;
 			}
 		}
-
 		lastFramePosition = viewCam.ScreenToWorldPoint (Input.mousePosition);
 	}
 
@@ -363,12 +363,71 @@ public class WorldManager : MonoBehaviour {
 		// var output = new StringBuilder();
 		foreach (var entry in mapping.Children)
 		{
-			var childMapping = ((YamlMappingNode)entry.Value);
-			foreach (var child in childMapping.Children) {
-				Debug.Log (child.Key);
-				Debug.Log (child.Value);
+			if (entry.Key.ToString ().Equals ("nodes")) {
+				var childMapping = ((YamlMappingNode)entry.Value);
+				foreach (var child in childMapping.Children) {
+					string name = child.Key.ToString();
+					Vector3 pos = new Vector3 ();
+					int count = 0;
+					var coordinates = ((YamlSequenceNode)child.Value);
+					foreach (var num in coordinates.Children) {
+						count++;
+						if (count == 1) {
+							pos.x = float.Parse (num.ToString());
+						} else if (count == 2) {
+							pos.z = float.Parse (num.ToString());
+						} else {
+							pos.y = float.Parse (num.ToString());
+						}
+					}
+					GameObject clone = Instantiate (node, pos, Quaternion.Euler(0,0,0)) as GameObject;
+					clone.name = name;
+					clone.GetComponent<Node> ().nodeName = name;
+					if (OnMoved != null) {
+						OnMoved (selected);
+					}
+				}
+			} else if (entry.Key.ToString ().Equals ("pair_groups")) {
+				var childMapping = ((YamlMappingNode)entry.Value);
+				foreach (var child in childMapping.Children) {
+					// Debug.Log (child.Key);
+					if (child.Key.ToString ().Contains ("rod")) {
+						var coordinates = ((YamlSequenceNode)child.Value);
+						foreach (var num in coordinates.Children) {
+							string name1 = "";
+							string name2 = "";
+							int count = 0;
+							var names  = (YamlSequenceNode)num;
+							foreach (var name in names.Children) {
+								count++;
+								if (count == 1)
+									name1 = name.ToString ();
+								else
+									name2 = name.ToString ();
+							}
+							GameObject clone = Instantiate (rod, Vector3.zero, Quaternion.Euler (0, 0, 0)) as GameObject;
+							clone.GetComponent<Edge> ().AssignNode (GameObject.Find(name1), GameObject.Find(name2));
+						}
+					} else if (child.Key.ToString ().Contains ("string")) {
+						var coordinates = ((YamlSequenceNode)child.Value);
+						foreach (var num in coordinates.Children) {
+							string name1 = "";
+							string name2 = "";
+							int count = 0;
+							var names  = (YamlSequenceNode)num;
+							foreach (var name in names.Children) {
+								count++;
+								if (count == 1)
+									name1 = name.ToString ();
+								else
+									name2 = name.ToString ();
+							}
+							GameObject clone = Instantiate (str, Vector3.zero, Quaternion.Euler (0, 0, 0)) as GameObject;
+							clone.GetComponent<StringCon> ().AssignNode (GameObject.Find(name1), GameObject.Find(name2));
+						}
+					}
+				}
 			}
-			// Debug.Log (((YamlMappingNode)entry.Value).Children.Count);
 		} 
 		// Debug.Log(output);
 	}
@@ -388,7 +447,7 @@ public class WorldManager : MonoBehaviour {
 		Debug.Log (Strs.Length);
 
 		if (File.Exists (filename)) {
-			var file = File.CreateText ("temp.txt");
+				var file = File.CreateText ("temp.txt");
 			file.WriteLine ("nodes:");
 			for (int i = 0; i < Nodes.Length; i++) {
 				file.WriteLine (Nodes [i].GetComponent<Node> ().ToString ());
@@ -421,22 +480,6 @@ public class WorldManager : MonoBehaviour {
 			}
 			file.Close ();
 		}
-	}
-
-	/*
-	 * Here are a list of classes used for Parsing YAML files. 
-	 * These include Tensegrity class, node class, rod class, and string class for now
-	 * This might be a bad design which leads to messy code.
-	 * 
-	*/ 
-	public class Structure {
-		public List<NodeRep> nodes { get; set;}
-		// public List<Rods> rods { get; set;}
-		// public List<StringConnectors> strs { get; set;}
-	}
-
-	public class NodeRep {
-		public Vector3 Bottom1 { get; set;}
 	}
 
 	private const string Document = @"

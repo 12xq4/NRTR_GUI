@@ -14,9 +14,13 @@ public class Node : MonoBehaviour {
 	public string nodeName;
 
 	// Use this for initialization
-	void Start () {
+	void Awake() {
 		nodeName = "node" + totalNode;
 		totalNode++;
+	}
+
+	void Start () {
+
 	}
 
 	void OnDestroy() {
@@ -33,7 +37,6 @@ public class Node : MonoBehaviour {
 
 	// Update is called once per frame
 	void Update () {
-		
 	}
 
 	void UpdatePosition(GameObject changed) {
