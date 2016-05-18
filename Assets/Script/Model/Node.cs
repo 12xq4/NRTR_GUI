@@ -19,6 +19,10 @@ public class Node : MonoBehaviour {
 		totalNode++;
 	}
 
+	void OnDestroy() {
+		totalNode--;
+	}
+
 	void OnEnable () {
 		WorldManager.OnMoved += UpdatePosition;
 	}

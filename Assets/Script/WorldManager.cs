@@ -2,11 +2,16 @@
 using System.Collections;
 using UnityEngine.UI;
 using System.IO;
+using System.Collections.Generic;
+using System.Text;
+using System;
 
+using YamlDotNet.RepresentationModel;
 
 /*	Notes:
  * Reverse z and y for users' understanding.
  * Define a structure which can read YAML and import it into scene;
+ * Yaml use spaces for indentation, not tabs. Make sure i fix that
  * 
 */ 
 
@@ -41,6 +46,10 @@ public class WorldManager : MonoBehaviour {
 	public GameObject rod;
 	public GameObject str;
 
+	// Parser part:
+	public enum ParserStat {Parse_node, Parse_rod, Parse_string, Done};
+	ParserStat currentStat;
+
 	// Use this for initialization
 	void Start () {
 		view = ViewDir.Front;
@@ -49,6 +58,8 @@ public class WorldManager : MonoBehaviour {
 
 		selected = null;
 		mode = Mode.Select;
+
+		currentStat = ParserStat.Done;
 	}
 	
 	// Update is called once per frame
@@ -338,16 +349,36 @@ public class WorldManager : MonoBehaviour {
 			botNode = null;
 	}
 
-	void ImportFromYAML() {
-		
-	}
+	public void ImportFromYAML() {
+		var input = new StringReader(Document);
+		var yaml = new YamlStream();
+		yaml.Load(input);
 
+		// Examine the stream
+		var mapping =
+			(YamlMappingNode)yaml.Documents[0].RootNode;
+	
+		// Debug.Log (mapping);	// mapping contains all information.
+
+		// var output = new StringBuilder();
+		foreach (var entry in mapping.Children)
+		{
+			var childMapping = ((YamlMappingNode)entry.Value);
+			foreach (var child in childMapping.Children) {
+				Debug.Log (child.Key);
+				Debug.Log (child.Value);
+			}
+			// Debug.Log (((YamlMappingNode)entry.Value).Children.Count);
+		} 
+		// Debug.Log(output);
+	}
+		
 	/*
 	 	* This method builds the Yaml file.
 	 	* Note this will write any existing yaml file with the name "build.yaml". To prevent overwriting, rename
 	 	* your saved build file to something else.
-	 */ 
-	void ExportToYAML() {
+	*/
+	public void ExportToYAML() {
 		var filename = "build.yaml";
 		var Nodes = GameObject.FindGameObjectsWithTag ("Node");
 		var Rods = GameObject.FindGameObjectsWithTag ("Rod");
@@ -391,4 +422,50 @@ public class WorldManager : MonoBehaviour {
 			file.Close ();
 		}
 	}
+
+	/*
+	 * Here are a list of classes used for Parsing YAML files. 
+	 * These include Tensegrity class, node class, rod class, and string class for now
+	 * This might be a bad design which leads to messy code.
+	 * 
+	*/ 
+	public class Structure {
+		public List<NodeRep> nodes { get; set;}
+		// public List<Rods> rods { get; set;}
+		// public List<StringConnectors> strs { get; set;}
+	}
+
+	public class NodeRep {
+		public Vector3 Bottom1 { get; set;}
+	}
+
+	private const string Document = @"
+nodes:
+  bottom1: [-5, 0, 0]
+  bottom2: [5, 0, 0]
+  bottom3: [0, 0, 8.66]
+
+  top1: [-5, 5, 0]
+  top2: [5, 5, 0]
+  top3: [0, 5, 8.66]
+
+pair_groups:
+  rod:
+    - [bottom1, top2]
+    - [bottom2, top3]
+    - [bottom3, top1]
+
+  string:
+    - [bottom1, bottom2]
+    - [bottom2, bottom3]
+    - [bottom1, bottom3]
+
+    - [top1, top2]
+    - [top2, top3]
+    - [top1, top3]
+
+    - [bottom1, top1]
+    - [bottom2, top2]
+    - [bottom3, top3]
+";
 }
