@@ -352,109 +352,110 @@ public class WorldManager : MonoBehaviour {
 
 	public void ImportFromYAML() {
 		var path = EditorUtility.OpenFilePanel ("Please select your import YAML file.", "", "yaml");
-		var pass = new StringBuilder();
-		try 
-		{
-			// Create an instance of StreamReader to read from a file.
-			// The using statement also closes the StreamReader.
-			using (StreamReader sr = new StreamReader(path)) 
+		if (path.Length != 0){
+			var pass = new StringBuilder();
+			try 
 			{
-				string line;
-				// Read and display lines from the file until the end of 
-				// the file is reached.
-				while ((line = sr.ReadLine()) != null) 
+				// Create an instance of StreamReader to read from a file.
+				// The using statement also closes the StreamReader.
+				using (StreamReader sr = new StreamReader(path)) 
 				{
-					pass.AppendLine(line);
-				}
-			}
-		}
-		catch (Exception e) 
-		{
-			// Let the user know what went wrong.
-			Console.WriteLine("The file could not be read:");
-			Console.WriteLine(e.Message);
-		}
-
-		var input = new StringReader(pass.ToString());
-		var yaml = new YamlStream();
-		yaml.Load(input);
-
-		// Examine the stream
-		var mapping =
-			(YamlMappingNode)yaml.Documents[0].RootNode;
-	
-		// Debug.Log (mapping);	// mapping contains all information.
-
-		// var output = new StringBuilder();
-		foreach (var entry in mapping.Children)
-		{
-			if (entry.Key.ToString ().Equals ("nodes")) {
-				var childMapping = ((YamlMappingNode)entry.Value);
-				foreach (var child in childMapping.Children) {
-					string name = child.Key.ToString();
-					Vector3 pos = new Vector3 ();
-					int count = 0;
-					var coordinates = ((YamlSequenceNode)child.Value);
-					foreach (var num in coordinates.Children) {
-						count++;
-						if (count == 1) {
-							pos.x = float.Parse (num.ToString());
-						} else if (count == 2) {
-							pos.z = float.Parse (num.ToString());
-						} else {
-							pos.y = float.Parse (num.ToString());
-						}
-					}
-					GameObject clone = Instantiate (node, pos, Quaternion.Euler(0,0,0)) as GameObject;
-					clone.name = name;
-					clone.GetComponent<Node> ().nodeName = name;
-					if (OnMoved != null) {
-						OnMoved (selected);
-					}
-				}
-			} else if (entry.Key.ToString ().Equals ("pair_groups")) {
-				var childMapping = ((YamlMappingNode)entry.Value);
-				foreach (var child in childMapping.Children) {
-					// Debug.Log (child.Key);
-					if (child.Key.ToString ().Contains ("rod")) {
-						var coordinates = ((YamlSequenceNode)child.Value);
-						foreach (var num in coordinates.Children) {
-							string name1 = "";
-							string name2 = "";
-							int count = 0;
-							var names  = (YamlSequenceNode)num;
-							foreach (var name in names.Children) {
-								count++;
-								if (count == 1)
-									name1 = name.ToString ();
-								else
-									name2 = name.ToString ();
-							}
-							GameObject clone = Instantiate (rod, Vector3.zero, Quaternion.Euler (0, 0, 0)) as GameObject;
-							clone.GetComponent<Edge> ().AssignNode (GameObject.Find(name1), GameObject.Find(name2));
-						}
-					} else if (child.Key.ToString ().Contains ("string")) {
-						var coordinates = ((YamlSequenceNode)child.Value);
-						foreach (var num in coordinates.Children) {
-							string name1 = "";
-							string name2 = "";
-							int count = 0;
-							var names  = (YamlSequenceNode)num;
-							foreach (var name in names.Children) {
-								count++;
-								if (count == 1)
-									name1 = name.ToString ();
-								else
-									name2 = name.ToString ();
-							}
-							GameObject clone = Instantiate (str, Vector3.zero, Quaternion.Euler (0, 0, 0)) as GameObject;
-							clone.GetComponent<StringCon> ().AssignNode (GameObject.Find(name1), GameObject.Find(name2));
-						}
+					string line;
+					// Read and display lines from the file until the end of 
+					// the file is reached.
+					while ((line = sr.ReadLine()) != null) 
+					{
+						pass.AppendLine(line);
 					}
 				}
 			}
-		} 
+			catch (Exception e) 
+			{
+				// Let the user know what went wrong.
+				Console.WriteLine("The file could not be read:");
+				Console.WriteLine(e.Message);
+			}
+			var input = new StringReader(pass.ToString());
+			var yaml = new YamlStream();
+			yaml.Load(input);
+
+			// Examine the stream
+			var mapping =
+				(YamlMappingNode)yaml.Documents[0].RootNode;
+		
+			// Debug.Log (mapping);	// mapping contains all information.
+
+			// var output = new StringBuilder();
+			foreach (var entry in mapping.Children)
+			{
+				if (entry.Key.ToString ().Equals ("nodes")) {
+					var childMapping = ((YamlMappingNode)entry.Value);
+					foreach (var child in childMapping.Children) {
+						string name = child.Key.ToString();
+						Vector3 pos = new Vector3 ();
+						int count = 0;
+						var coordinates = ((YamlSequenceNode)child.Value);
+						foreach (var num in coordinates.Children) {
+							count++;
+							if (count == 1) {
+								pos.x = float.Parse (num.ToString());
+							} else if (count == 2) {
+								pos.z = float.Parse (num.ToString());
+							} else {
+								pos.y = float.Parse (num.ToString());
+							}
+						}
+						GameObject clone = Instantiate (node, pos, Quaternion.Euler(0,0,0)) as GameObject;
+						clone.name = name;
+						clone.GetComponent<Node> ().nodeName = name;
+						if (OnMoved != null) {
+							OnMoved (selected);
+						}
+					}
+				} else if (entry.Key.ToString ().Equals ("pair_groups")) {
+					var childMapping = ((YamlMappingNode)entry.Value);
+					foreach (var child in childMapping.Children) {
+						// Debug.Log (child.Key);
+						if (child.Key.ToString ().Contains ("rod")) {
+							var coordinates = ((YamlSequenceNode)child.Value);
+							foreach (var num in coordinates.Children) {
+								string name1 = "";
+								string name2 = "";
+								int count = 0;
+								var names  = (YamlSequenceNode)num;
+								foreach (var name in names.Children) {
+									count++;
+									if (count == 1)
+										name1 = name.ToString ();
+									else
+										name2 = name.ToString ();
+								}
+								GameObject clone = Instantiate (rod, Vector3.zero, Quaternion.Euler (0, 0, 0)) as GameObject;
+								clone.GetComponent<Edge> ().AssignNode (GameObject.Find(name1), GameObject.Find(name2));
+							}
+						} else if (child.Key.ToString ().Contains ("string")) {
+							var coordinates = ((YamlSequenceNode)child.Value);
+							foreach (var num in coordinates.Children) {
+								string name1 = "";
+								string name2 = "";
+								int count = 0;
+								var names  = (YamlSequenceNode)num;
+								foreach (var name in names.Children) {
+									count++;
+									if (count == 1)
+										name1 = name.ToString ();
+									else
+										name2 = name.ToString ();
+								}
+								GameObject clone = Instantiate (str, Vector3.zero, Quaternion.Euler (0, 0, 0)) as GameObject;
+								clone.GetComponent<StringCon> ().AssignNode (GameObject.Find(name1), GameObject.Find(name2));
+							}
+						}
+					}
+				}
+			} 
 		// Debug.Log(output);
+		}
 	}
 		
 	/*
@@ -463,47 +464,46 @@ public class WorldManager : MonoBehaviour {
 	 	* your saved build file to something else.
 	*/
 	public void ExportToYAML() {
-		var filename = "build.yaml";
-		var Nodes = GameObject.FindGameObjectsWithTag ("Node");
-		var Rods = GameObject.FindGameObjectsWithTag ("Rod");
-		var Strs = GameObject.FindGameObjectsWithTag ("String");
-		Debug.Log (Nodes.Length);
-		Debug.Log (Rods.Length);
-		Debug.Log (Strs.Length);
+		var filename = EditorUtility.SaveFilePanel("Save your work as a YAML file.", "", "build.yaml", "yaml");
+		if (filename.Length != 0) {
+			var Nodes = GameObject.FindGameObjectsWithTag ("Node");
+			var Rods = GameObject.FindGameObjectsWithTag ("Rod");
+			var Strs = GameObject.FindGameObjectsWithTag ("String");
 
-		if (File.Exists (filename)) {
+			if (File.Exists (filename)) {
 				var file = File.CreateText ("temp.txt");
-			file.WriteLine ("nodes:");
-			for (int i = 0; i < Nodes.Length; i++) {
-				file.WriteLine (Nodes [i].GetComponent<Node> ().ToString ());
+				file.WriteLine ("nodes:");
+				for (int i = 0; i < Nodes.Length; i++) {
+					file.WriteLine (Nodes [i].GetComponent<Node> ().ToString ());
+				}
+				file.WriteLine ("pair_groups:");
+				file.WriteLine ("  rod:");
+				for (int i = 0; i < Rods.Length; i++) {
+					file.WriteLine (Rods [i].GetComponent<Edge> ().ToString ());
+				}
+				file.WriteLine ("  string:");
+				for (int i = 0; i < Strs.Length; i++) {
+					file.WriteLine (Strs [i].GetComponent<StringCon> ().ToString ());
+				}
+				file.Close ();
+				File.Replace ("temp.txt", filename, null); 
+			} else {
+				var file = File.CreateText (filename);
+				file.WriteLine ("nodes:");
+				for (int i = 0; i < Nodes.Length; i++) {
+					file.WriteLine (Nodes [i].GetComponent<Node> ().ToString ());
+				}
+				file.WriteLine ("pair_groups:");
+				file.WriteLine ("  rod:");
+				for (int i = 0; i < Rods.Length; i++) {
+					file.WriteLine (Rods [i].GetComponent<Edge> ().ToString ());
+				}
+				file.WriteLine ("  string:");
+				for (int i = 0; i < Strs.Length; i++) {
+					file.WriteLine (Strs [i].GetComponent<StringCon> ().ToString ());
+				}
+				file.Close ();
 			}
-			file.WriteLine ("pair_groups:");
-			file.WriteLine ("  rod:");
-			for (int i = 0; i < Rods.Length; i++) {
-				file.WriteLine (Rods [i].GetComponent<Edge> ().ToString ());
-			}
-			file.WriteLine ("  string:");
-			for (int i = 0; i < Strs.Length; i++) {
-				file.WriteLine (Strs [i].GetComponent<StringCon> ().ToString ());
-			}
-			file.Close ();
-			File.Replace ("temp.txt", filename, null); 
-		} else {
-			var file = File.CreateText (filename);
-			file.WriteLine ("nodes:");
-			for (int i = 0; i < Nodes.Length; i++) {
-				file.WriteLine (Nodes [i].GetComponent<Node> ().ToString ());
-			}
-			file.WriteLine ("pair_groups:");
-			file.WriteLine ("  rod:");
-			for (int i = 0; i < Rods.Length; i++) {
-				file.WriteLine (Rods [i].GetComponent<Edge> ().ToString ());
-			}
-			file.WriteLine ("  string:");
-			for (int i = 0; i < Strs.Length; i++) {
-				file.WriteLine (Strs [i].GetComponent<StringCon> ().ToString ());
-			}
-			file.Close ();
 		}
 	}
 
