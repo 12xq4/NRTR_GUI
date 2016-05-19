@@ -5,6 +5,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Text;
 using System;
+using UnityEditor;
 
 using YamlDotNet.RepresentationModel;
 
@@ -350,7 +351,31 @@ public class WorldManager : MonoBehaviour {
 	}
 
 	public void ImportFromYAML() {
-		var input = new StringReader(Document);
+		var path = EditorUtility.OpenFilePanel ("Please select your import YAML file.", "", "yaml");
+		var pass = new StringBuilder();
+		try 
+		{
+			// Create an instance of StreamReader to read from a file.
+			// The using statement also closes the StreamReader.
+			using (StreamReader sr = new StreamReader(path)) 
+			{
+				string line;
+				// Read and display lines from the file until the end of 
+				// the file is reached.
+				while ((line = sr.ReadLine()) != null) 
+				{
+					pass.AppendLine(line);
+				}
+			}
+		}
+		catch (Exception e) 
+		{
+			// Let the user know what went wrong.
+			Console.WriteLine("The file could not be read:");
+			Console.WriteLine(e.Message);
+		}
+
+		var input = new StringReader(pass.ToString());
 		var yaml = new YamlStream();
 		yaml.Load(input);
 
@@ -453,11 +478,11 @@ public class WorldManager : MonoBehaviour {
 				file.WriteLine (Nodes [i].GetComponent<Node> ().ToString ());
 			}
 			file.WriteLine ("pair_groups:");
-			file.WriteLine ("\trod:");
+			file.WriteLine ("  rod:");
 			for (int i = 0; i < Rods.Length; i++) {
 				file.WriteLine (Rods [i].GetComponent<Edge> ().ToString ());
 			}
-			file.WriteLine ("\tstring:");
+			file.WriteLine ("  string:");
 			for (int i = 0; i < Strs.Length; i++) {
 				file.WriteLine (Strs [i].GetComponent<StringCon> ().ToString ());
 			}
@@ -470,11 +495,11 @@ public class WorldManager : MonoBehaviour {
 				file.WriteLine (Nodes [i].GetComponent<Node> ().ToString ());
 			}
 			file.WriteLine ("pair_groups:");
-			file.WriteLine ("\trod:");
+			file.WriteLine ("  rod:");
 			for (int i = 0; i < Rods.Length; i++) {
 				file.WriteLine (Rods [i].GetComponent<Edge> ().ToString ());
 			}
-			file.WriteLine ("\tstring:");
+			file.WriteLine ("  string:");
 			for (int i = 0; i < Strs.Length; i++) {
 				file.WriteLine (Strs [i].GetComponent<StringCon> ().ToString ());
 			}
@@ -482,8 +507,7 @@ public class WorldManager : MonoBehaviour {
 		}
 	}
 
-	private const string Document = @"
-nodes:
+	private const string Document = @"nodes:
   bottom1: [-5, 0, 0]
   bottom2: [5, 0, 0]
   bottom3: [0, 0, 8.66]
@@ -509,6 +533,5 @@ pair_groups:
 
     - [bottom1, top1]
     - [bottom2, top2]
-    - [bottom3, top3]
-";
+    - [bottom3, top3]";
 }

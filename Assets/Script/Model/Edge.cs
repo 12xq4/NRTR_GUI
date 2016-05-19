@@ -56,6 +56,6 @@ public class Edge : MonoBehaviour {
 	}
 
 	public string ToString() {
-		return "\t\t - [" + top.GetComponent<Node>().nodeName + ", " + bot.GetComponent<Node>().nodeName + "]";
+		return "     - [" + top.GetComponent<Node>().nodeName + ", " + bot.GetComponent<Node>().nodeName + "]";
 	}
 }
