@@ -6,6 +6,10 @@ public class StringCon : MonoBehaviour {
 	GameObject top;
 	GameObject bot;
 
+	public static float stiffness;
+	public static float damping;
+	public static float pretension;
+
 	// Use this for initialization
 	void Start () {
 	
@@ -13,10 +17,12 @@ public class StringCon : MonoBehaviour {
 
 	void OnEnable () {
 		WorldManager.OnMoved += RelocateEndNodes;
+		WorldManager.OnDestroyed += DestroyEndNodes;
 	}
 
 	void OnDisable () {
 		WorldManager.OnMoved -= RelocateEndNodes;
+		WorldManager.OnDestroyed -= DestroyEndNodes;
 	}
 
 	
@@ -43,6 +49,12 @@ public class StringCon : MonoBehaviour {
 	void RelocateEndNodes(GameObject node) {
 		if (node == top || node == bot) {
 			ShapeConnector ();
+		}
+	}
+
+	void DestroyEndNodes(GameObject node) {
+		if (node == top || node == bot) {
+			Destroy (this.gameObject);
 		}
 	}
 

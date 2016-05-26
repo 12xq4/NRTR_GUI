@@ -6,21 +6,31 @@ using System.Collections.Generic;
 using System.Text;
 using System;
 using UnityEditor;
+using UnityEngine.EventSystems;
 
 using YamlDotNet.RepresentationModel;
 
 /*	Notes:
- * Reverse z and y for users' understanding.
- * Define a structure which can read YAML and import it into scene;
- * Yaml use spaces for indentation, not tabs. Make sure i fix that
- * Figure out a shared unit of work
+ * Reverse z and y for users' understanding. 						(Done)
+ * Define a structure which can read YAML and import it into scene;	(Done)
+ * Yaml use spaces for indentation, not tabs. Make sure i fix that	(Done)
+ * Figure out a unit percision of work								(Done)
+ * Make Interface look & feel better.								(Done for now - it will be ongoing effort)
+ * Calculate the world center instead of setting it to (0,10,0)		(Done)
+ * Implement Material information and a form system to set material. Then change the parser to accept material information. 
+ * Push it to the internet, build as web application.
+ * Phase 1 checklist
  * 
+ * Constant Objective:
+ * Debug, Keep a test suite
 */ 
 
 
 public class WorldManager : MonoBehaviour {
 	public delegate void OnNodeChanged(GameObject changed); 
 	public static event OnNodeChanged OnMoved;
+	public static event OnNodeChanged OnDestroyed;
+
 
 	public enum ViewDir {Front, Back, Left, Right, Top, Bottom};
 	[SerializeField]
@@ -30,6 +40,8 @@ public class WorldManager : MonoBehaviour {
 	Camera viewCam;
 	Vector3 lastFramePosition;
 	Vector3 currentPosition;
+
+	public Transform center;
 
 	public enum Mode {Select, Place_Node, Place_Rod, Place_Str};
 	[SerializeField]
@@ -48,9 +60,8 @@ public class WorldManager : MonoBehaviour {
 	public GameObject rod;
 	public GameObject str;
 
-	// Parser part:
-	public enum ParserStat {Parse_node, Parse_rod, Parse_string, Done};
-	ParserStat currentStat;
+	// Controls
+	bool clicked;
 
 	// Use this for initialization
 	void Start () {
@@ -61,90 +72,98 @@ public class WorldManager : MonoBehaviour {
 		selected = null;
 		mode = Mode.Select;
 
-		currentStat = ParserStat.Done;
 	}
 	
 	// Update is called once per frame
 	void Update () {
 		currentPosition = viewCam.ScreenToWorldPoint (Input.mousePosition);
-		PerspectiveControl ();
 		CameraDrag ();
-		CameraSwitch ();
-		ModeSwitch ();
 
-		if (Input.GetKeyDown (KeyCode.Escape)) {
-			CleanUp ();
-			mode = Mode.Select;
-		}
-		if (mode == Mode.Select) {
-			// select an object.
-			// Adding select rods/strings
-			if (Input.GetMouseButtonDown (0)) {
-				RaycastHit hit;
-				Ray ray = viewCam.ScreenPointToRay (Input.mousePosition);
-				if (Physics.Raycast (ray, out hit)) {
-					selected = hit.transform.gameObject;
-				}
+		if (!EventSystem.current.IsPointerOverGameObject ()) {
+			PerspectiveControl ();
+			CameraSwitch ();
+			ModeSwitch ();
+			if (Input.GetKeyDown (KeyCode.Escape)) {
+				CleanUp ();
+				mode = Mode.Select;
 			}
-			// follow mouse position for the meanwhile.
-			if (selected != null) {
-				if (selected.transform.tag == "Node") {
-					if (Input.GetMouseButton (0) && selected != null)
-						FollowMouseDrag ();
-					// Drop object.
-					if (Input.GetMouseButtonUp (0) && selected != null) {
-						selected.GetComponent<Renderer> ().material.color = Color.white;
-						selected = null;
+			if (mode == Mode.Select) {
+				// select an object.
+				// Adding select rods/strings
+				// if (Input.GetMouseButtonDown (0)) {
+					RaycastHit hit;
+					Ray ray = viewCam.ScreenPointToRay (Input.mousePosition);
+					if (Physics.Raycast (ray, out hit)) {
+						selected = hit.transform.gameObject;
 					}
-				} else {
-					selected.transform.FindChild ("Cylinder").transform.GetComponent<Renderer> ().material.color = Color.red;
-					if (Input.GetKeyDown (KeyCode.Delete) || Input.GetKey (KeyCode.Backspace)) {
-						Destroy (selected);
-						CleanUp ();
-					} 
+				// }
+				// follow mouse position for the meanwhile.
+				if (selected != null) {
+					if (selected.transform.tag == "Node") {
+						if (Input.GetMouseButton (0) && selected != null)
+							FollowMouseDrag ();
+						// Drop object.
+						if (Input.GetMouseButtonUp (0) && selected != null) {
+							selected.GetComponent<Renderer> ().material.color = Color.white;
+							selected = null;
+						}
+						if (Input.GetKeyDown (KeyCode.Delete) || Input.GetKey (KeyCode.Backspace)) {
+							if (OnDestroyed != null) {
+								OnDestroyed (selected);
+							}
+							Destroy (selected);
+							CleanUp ();
+						} 
+					} else {
+						selected.transform.FindChild ("Cylinder").transform.GetComponent<Renderer> ().material.color = Color.red;
+						if (Input.GetKeyDown (KeyCode.Delete) || Input.GetKey (KeyCode.Backspace)) {
+							Destroy (selected);
+							CleanUp ();
+						} 
+					}
 				}
-			}
-		} else if (mode == Mode.Place_Node) {
-			if (selected == null)
-				selected = Instantiate (node, new Vector3 (), Quaternion.Euler (0, 0, 0)) as GameObject;
-			FollowMouseDrag ();
-			if (Input.GetMouseButtonDown (0) && selected != null) {
-				selected.GetComponent<Renderer> ().material.color = Color.white;
-				selected = null;
-			}
-		} else if (mode == Mode.Place_Rod) {
-			if (Input.GetMouseButtonDown (0)) {
-				RaycastHit hit;
-				Ray ray = viewCam.ScreenPointToRay (Input.mousePosition);
-				if (Physics.Raycast (ray, out hit)) {
-					if (hit.transform.tag == "Node" && topNode == null)
-						topNode = hit.transform.gameObject;
-					else if (hit.transform.tag == "Node" && topNode != null && botNode == null) // some unnecessary safety check.
+			} else if (mode == Mode.Place_Node) {
+				if (selected == null)
+					selected = Instantiate (node, new Vector3 (), Quaternion.Euler (0, 0, 0)) as GameObject;
+				FollowMouseDrag ();
+				if (Input.GetMouseButtonDown (0) && selected != null) {
+					selected.GetComponent<Renderer> ().material.color = Color.white;
+					selected = null;
+				}
+			} else if (mode == Mode.Place_Rod) {
+				if (Input.GetMouseButtonDown (0)) {
+					RaycastHit hit;
+					Ray ray = viewCam.ScreenPointToRay (Input.mousePosition);
+					if (Physics.Raycast (ray, out hit)) {
+						if (hit.transform.tag == "Node" && topNode == null)
+							topNode = hit.transform.gameObject;
+						else if (hit.transform.tag == "Node" && topNode != null && botNode == null) // some unnecessary safety check.
 						botNode = hit.transform.gameObject;
+					}
 				}
-			}
-			if (topNode != null && botNode != null) {
-				GameObject clone = Instantiate (rod, Vector3.zero, Quaternion.Euler (0, 0, 0)) as GameObject;
-				clone.GetComponent<Edge> ().AssignNode (topNode, botNode);
-				topNode = null;
-				botNode = null;
-			}
-		} else if (mode == Mode.Place_Str) {
-			if (Input.GetMouseButtonDown (0)) {
-				RaycastHit hit;
-				Ray ray = viewCam.ScreenPointToRay (Input.mousePosition);
-				if (Physics.Raycast (ray, out hit)) {
-					if (hit.transform.tag == "Node" && topNode == null)
-						topNode = hit.transform.gameObject;
-					else if (hit.transform.tag == "Node" && topNode != null && botNode == null) // some unnecessary safety check.
+				if (topNode != null && botNode != null) {
+					GameObject clone = Instantiate (rod, center.position, Quaternion.Euler (0, 0, 0)) as GameObject;
+					clone.GetComponent<Edge> ().AssignNode (topNode, botNode);
+					topNode = null;
+					botNode = null;
+				}
+			} else if (mode == Mode.Place_Str) {
+				if (Input.GetMouseButtonDown (0)) {
+					RaycastHit hit;
+					Ray ray = viewCam.ScreenPointToRay (Input.mousePosition);
+					if (Physics.Raycast (ray, out hit)) {
+						if (hit.transform.tag == "Node" && topNode == null)
+							topNode = hit.transform.gameObject;
+						else if (hit.transform.tag == "Node" && topNode != null && botNode == null) // some unnecessary safety check.
 						botNode = hit.transform.gameObject;
+					}
 				}
-			}
-			if (topNode != null && botNode != null) {
-				GameObject clone = Instantiate (str, Vector3.zero, Quaternion.Euler (0, 0, 0)) as GameObject;
-				clone.GetComponent<StringCon> ().AssignNode (topNode, botNode);
-				topNode = null;
-				botNode = null;
+				if (topNode != null && botNode != null) {
+					GameObject clone = Instantiate (str, center.position, Quaternion.Euler (0, 0, 0)) as GameObject;
+					clone.GetComponent<StringCon> ().AssignNode (topNode, botNode);
+					topNode = null;
+					botNode = null;
+				}
 			}
 		}
 		lastFramePosition = viewCam.ScreenToWorldPoint (Input.mousePosition);
@@ -207,20 +226,20 @@ public class WorldManager : MonoBehaviour {
 	 */ 
 	void PerspectiveControl(){
 		if (Input.GetKey (KeyCode.LeftArrow)) {
-			Camera.main.transform.RotateAround (Vector3.zero, Vector3.up, 30 * Time.deltaTime);
+			Camera.main.transform.RotateAround (center.position, Vector3.up, 30 * Time.deltaTime);
 		} else if (Input.GetKey (KeyCode.RightArrow)) {
-			Camera.main.transform.RotateAround (Vector3.zero, Vector3.up, -30 * Time.deltaTime);
+			Camera.main.transform.RotateAround (center.position, Vector3.up, -30 * Time.deltaTime);
 		} else if (Input.GetKey (KeyCode.UpArrow)) {
 			// Camera.main.transform.RotateAround (Vector3.zero, Vector3.right, 30 * Time.deltaTime);
 			if (Camera.main.transform.rotation.eulerAngles.x < 89 || Camera.main.transform.rotation.eulerAngles.x > 271) {
 				Camera.main.transform.Translate (new Vector3 (0, 10, 0) * Time.deltaTime);
-				Camera.main.transform.LookAt (new Vector3(0,10,0));
+				Camera.main.transform.LookAt (center.position);
 			}
 		} else if (Input.GetKey (KeyCode.DownArrow)) {
 			// Camera.main.transform.RotateAround (Vector3.zero, Vector3.right, -30 * Time.deltaTime);
 			if (Camera.main.transform.rotation.eulerAngles.x > 271 || Camera.main.transform.rotation.eulerAngles.x < 89) {
 				Camera.main.transform.Translate (new Vector3 (0, -10, 0) * Time.deltaTime);
-				Camera.main.transform.LookAt (new Vector3(0,10,0));
+				Camera.main.transform.LookAt (center.position);
 			}
 		}
 	}
@@ -231,20 +250,35 @@ public class WorldManager : MonoBehaviour {
 	 */ 
 	void ModeSwitch ()	{
 		if (Input.GetKeyDown (KeyCode.Z)) {
-			CleanUp ();
-			mode = Mode.Select;
+			SwitchToSelect ();
 		} else if (Input.GetKeyDown (KeyCode.X)) {
-			CleanUp ();
-			mode = Mode.Place_Node;
+			SwitchToNodePlace ();
 		} else if (Input.GetKeyDown (KeyCode.C)) {
-			CleanUp ();
-			mode = Mode.Place_Rod;
+			SwitchToRodPlace ();
 		} else if (Input.GetKeyDown (KeyCode.V)) {
-			CleanUp ();
-			mode = Mode.Place_Str;
+			SwitchToStrPlace ();
 		}
 	}
 
+	public void SwitchToSelect() {
+		CleanUp ();
+		mode = Mode.Select;
+	}
+
+	public void SwitchToNodePlace() {
+		CleanUp ();
+		mode = Mode.Place_Node;
+	}
+
+	public void SwitchToRodPlace() {
+		CleanUp ();
+		mode = Mode.Place_Rod;
+	}
+
+	public void SwitchToStrPlace() {
+		CleanUp ();
+		mode = Mode.Place_Str;
+	}
 	/*
 	 	* This is used to move the viewing camera:
 	 	* by right click then drag your mouse.
@@ -391,21 +425,21 @@ public class WorldManager : MonoBehaviour {
 				if (entry.Key.ToString ().Equals ("nodes")) {
 					var childMapping = ((YamlMappingNode)entry.Value);
 					foreach (var child in childMapping.Children) {
-						string name = child.Key.ToString();
+						string name = child.Key.ToString ();
 						Vector3 pos = new Vector3 ();
 						int count = 0;
 						var coordinates = ((YamlSequenceNode)child.Value);
 						foreach (var num in coordinates.Children) {
 							count++;
 							if (count == 1) {
-								pos.x = float.Parse (num.ToString());
+								pos.x = Mathf.Round (float.Parse (num.ToString ()));
 							} else if (count == 2) {
-								pos.z = float.Parse (num.ToString());
+								pos.z = Mathf.Round (float.Parse (num.ToString ()));
 							} else {
-								pos.y = float.Parse (num.ToString());
+								pos.y = Mathf.Round (float.Parse (num.ToString ()));
 							}
 						}
-						GameObject clone = Instantiate (node, pos, Quaternion.Euler(0,0,0)) as GameObject;
+						GameObject clone = Instantiate (node, pos, Quaternion.Euler (0, 0, 0)) as GameObject;
 						clone.name = name;
 						clone.GetComponent<Node> ().nodeName = name;
 						if (OnMoved != null) {
@@ -422,7 +456,7 @@ public class WorldManager : MonoBehaviour {
 								string name1 = "";
 								string name2 = "";
 								int count = 0;
-								var names  = (YamlSequenceNode)num;
+								var names = (YamlSequenceNode)num;
 								foreach (var name in names.Children) {
 									count++;
 									if (count == 1)
@@ -430,8 +464,8 @@ public class WorldManager : MonoBehaviour {
 									else
 										name2 = name.ToString ();
 								}
-								GameObject clone = Instantiate (rod, Vector3.zero, Quaternion.Euler (0, 0, 0)) as GameObject;
-								clone.GetComponent<Edge> ().AssignNode (GameObject.Find(name1), GameObject.Find(name2));
+								GameObject clone = Instantiate (rod, center.position, Quaternion.Euler (0, 0, 0)) as GameObject;
+								clone.GetComponent<Edge> ().AssignNode (GameObject.Find (name1), GameObject.Find (name2));
 							}
 						} else if (child.Key.ToString ().Contains ("string")) {
 							var coordinates = ((YamlSequenceNode)child.Value);
@@ -439,7 +473,7 @@ public class WorldManager : MonoBehaviour {
 								string name1 = "";
 								string name2 = "";
 								int count = 0;
-								var names  = (YamlSequenceNode)num;
+								var names = (YamlSequenceNode)num;
 								foreach (var name in names.Children) {
 									count++;
 									if (count == 1)
@@ -447,11 +481,47 @@ public class WorldManager : MonoBehaviour {
 									else
 										name2 = name.ToString ();
 								}
-								GameObject clone = Instantiate (str, Vector3.zero, Quaternion.Euler (0, 0, 0)) as GameObject;
-								clone.GetComponent<StringCon> ().AssignNode (GameObject.Find(name1), GameObject.Find(name2));
+								GameObject clone = Instantiate (str, center.position, Quaternion.Euler (0, 0, 0)) as GameObject;
+								clone.GetComponent<StringCon> ().AssignNode (GameObject.Find (name1), GameObject.Find (name2));
 							}
 						}
 					}
+				} else if (entry.Key.ToString ().Equals ("builders")) {
+					var sublvl1 = ((YamlMappingNode)entry.Value);
+					foreach (var sub in sublvl1.Children) {
+						if (sub.Key.ToString ().Contains ("rod")) {
+							var sublvl2 = ((YamlMappingNode)sub.Value);
+							foreach (var sub2 in sublvl2.Children) {
+								if (sub2.Key.ToString ().Equals ("parameters")) {
+									var sublvl3 = ((YamlMappingNode)sub2.Value);
+									foreach (var sub3 in sublvl3.Children) {
+										if (sub3.Key.ToString ().Equals ("density")) {
+											Edge.density = float.Parse (sub3.Value.ToString());
+										} else if (sub3.Key.ToString ().Equals ("radius")) {
+											Edge.radius = float.Parse (sub3.Value.ToString());
+										}
+									}
+								}
+							}
+						} else if (sub.Key.ToString ().Contains ("string")) {
+							var sublvl2 = ((YamlMappingNode)sub.Value);
+							foreach (var sub2 in sublvl2.Children) {
+								if (sub2.Key.ToString ().Equals ("parameters")) {
+									var sublvl3 = ((YamlMappingNode)sub2.Value);
+									foreach (var sub3 in sublvl3.Children) {
+										if (sub3.Key.ToString ().Equals ("stiffness")) {
+											StringCon.stiffness = float.Parse (sub3.Value.ToString());
+										} else if (sub3.Key.ToString ().Equals ("damping")) {
+											StringCon.damping = float.Parse (sub3.Value.ToString());
+										} else if (sub3.Key.ToString ().Equals ("pretension")) {
+											StringCon.pretension = float.Parse (sub3.Value.ToString());
+										}
+									}
+								}
+							}
+						}
+					}
+					transform.GetComponent<UIScript> ().ChangeDisplay ();
 				}
 			} 
 		// Debug.Log(output);
@@ -472,66 +542,86 @@ public class WorldManager : MonoBehaviour {
 
 			if (File.Exists (filename)) {
 				var file = File.CreateText ("temp.txt");
-				file.WriteLine ("nodes:");
-				for (int i = 0; i < Nodes.Length; i++) {
-					file.WriteLine (Nodes [i].GetComponent<Node> ().ToString ());
+				if (Nodes.Length != 0) {
+					file.WriteLine ("nodes:");
+					for (int i = 0; i < Nodes.Length; i++) {
+						file.WriteLine (Nodes [i].GetComponent<Node> ().ToString ());
+					}
 				}
-				file.WriteLine ("pair_groups:");
-				file.WriteLine ("  rod:");
-				for (int i = 0; i < Rods.Length; i++) {
-					file.WriteLine (Rods [i].GetComponent<Edge> ().ToString ());
-				}
-				file.WriteLine ("  string:");
-				for (int i = 0; i < Strs.Length; i++) {
-					file.WriteLine (Strs [i].GetComponent<StringCon> ().ToString ());
+				if (!(Rods.Length == 0 && Strs.Length == 0)) {
+					file.WriteLine ("pair_groups:");
+					if (Rods.Length != 0) {
+						file.WriteLine ("  rod:");
+						for (int i = 0; i < Rods.Length; i++) {
+							file.WriteLine (Rods [i].GetComponent<Edge> ().ToString ());
+						}
+					}
+					if (Strs.Length != 0) {
+						file.WriteLine ("  string:");
+						for (int i = 0; i < Strs.Length; i++) {
+							file.WriteLine (Strs [i].GetComponent<StringCon> ().ToString ());
+						}
+					}
+					file.WriteLine ("builders:");
+					if (Rods.Length != 0) {
+						file.WriteLine ("  rod:");
+						file.WriteLine ("    class: tgRodInfo");
+						file.WriteLine ("    parameters:");
+						file.WriteLine ("      density: " + Edge.density);
+						file.WriteLine ("      radius: " + Edge.radius);
+					}
+					if (Strs.Length != 0) {
+						file.WriteLine ("  string:");
+						file.WriteLine ("    class: tgBasicActuatorInfo");
+						file.WriteLine ("    parameters:");
+						file.WriteLine ("      stiffness: " + StringCon.stiffness);
+						file.WriteLine ("      damping: " + StringCon.damping);
+						file.WriteLine ("      pretension: " + StringCon.pretension);
+					}
 				}
 				file.Close ();
 				File.Replace ("temp.txt", filename, null); 
 			} else {
 				var file = File.CreateText (filename);
-				file.WriteLine ("nodes:");
-				for (int i = 0; i < Nodes.Length; i++) {
-					file.WriteLine (Nodes [i].GetComponent<Node> ().ToString ());
+				if (Nodes.Length != 0) {
+					file.WriteLine ("nodes:");
+					for (int i = 0; i < Nodes.Length; i++) {
+						file.WriteLine (Nodes [i].GetComponent<Node> ().ToString ());
+					}
 				}
-				file.WriteLine ("pair_groups:");
-				file.WriteLine ("  rod:");
-				for (int i = 0; i < Rods.Length; i++) {
-					file.WriteLine (Rods [i].GetComponent<Edge> ().ToString ());
-				}
-				file.WriteLine ("  string:");
-				for (int i = 0; i < Strs.Length; i++) {
-					file.WriteLine (Strs [i].GetComponent<StringCon> ().ToString ());
+				if (!(Rods.Length == 0 && Strs.Length == 0)) {
+					file.WriteLine ("pair_groups:");
+					if (Rods.Length != 0) {
+						file.WriteLine ("  rod:");
+						for (int i = 0; i < Rods.Length; i++) {
+							file.WriteLine (Rods [i].GetComponent<Edge> ().ToString ());
+						}
+					}
+					if (Strs.Length != 0) {
+						file.WriteLine ("  string:");
+						for (int i = 0; i < Strs.Length; i++) {
+							file.WriteLine (Strs [i].GetComponent<StringCon> ().ToString ());
+						}
+					}
+					file.WriteLine ("builders:");
+					if (Rods.Length != 0) {
+						file.WriteLine ("  rod:");
+						file.WriteLine ("    class: tgRodInfo");
+						file.WriteLine ("    parameters:");
+						file.WriteLine ("      density: " + Edge.density);
+						file.WriteLine ("      radius: " + Edge.radius);
+					}
+					if (Strs.Length != 0) {
+						file.WriteLine ("  string:");
+						file.WriteLine ("    class: tgBasicActuatorInfo");
+						file.WriteLine ("    parameters:");
+						file.WriteLine ("      stiffness: " + StringCon.stiffness);
+						file.WriteLine ("      damping: " + StringCon.damping);
+						file.WriteLine ("      pretension: " + StringCon.pretension);
+					}
 				}
 				file.Close ();
 			}
 		}
 	}
-
-	private const string Document = @"nodes:
-  bottom1: [-5, 0, 0]
-  bottom2: [5, 0, 0]
-  bottom3: [0, 0, 8.66]
-
-  top1: [-5, 5, 0]
-  top2: [5, 5, 0]
-  top3: [0, 5, 8.66]
-
-pair_groups:
-  rod:
-    - [bottom1, top2]
-    - [bottom2, top3]
-    - [bottom3, top1]
-
-  string:
-    - [bottom1, bottom2]
-    - [bottom2, bottom3]
-    - [bottom1, bottom3]
-
-    - [top1, top2]
-    - [top2, top3]
-    - [top1, top3]
-
-    - [bottom1, top1]
-    - [bottom2, top2]
-    - [bottom3, top3]";
 }

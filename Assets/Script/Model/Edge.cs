@@ -6,6 +6,8 @@ public class Edge : MonoBehaviour {
 	GameObject top;
 	GameObject bot;
 
+	public static float density;
+	public static float radius; 
 	// Use this for initialization
 	void Start () {
 	
@@ -13,10 +15,12 @@ public class Edge : MonoBehaviour {
 
 	void OnEnable () {
 		WorldManager.OnMoved += RelocateEndNodes;
+		WorldManager.OnDestroyed += DestroyEndNodes;
 	}
 
 	void OnDisable () {
 		WorldManager.OnMoved -= RelocateEndNodes;
+		WorldManager.OnDestroyed -= DestroyEndNodes;
 	}
 	
 	// Update is called once per frame
@@ -42,6 +46,12 @@ public class Edge : MonoBehaviour {
 	void RelocateEndNodes(GameObject node) {
 		if (node == top || node == bot) {
 			ShapeConnector ();
+		}
+	}
+
+	void DestroyEndNodes(GameObject node) {
+		if (node == top || node == bot) {
+			Destroy (this.gameObject);
 		}
 	}
 
