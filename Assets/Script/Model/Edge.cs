@@ -36,6 +36,12 @@ public class Edge : MonoBehaviour {
 		transform.FindChild("Cylinder").transform.GetComponent<Renderer> ().material.color = Color.gray;
 	}
 
+	void OnMouseOver() {
+		if (Input.GetKeyDown (KeyCode.Delete) || Input.GetKeyDown (KeyCode.Backspace)) {
+			Destroy (this.gameObject);
+		} 
+	}
+
 	public void AssignNode ( GameObject tp, GameObject bt)
 	{
 		top = tp;

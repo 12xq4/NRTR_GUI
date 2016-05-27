@@ -90,13 +90,13 @@ public class WorldManager : MonoBehaviour {
 			if (mode == Mode.Select) {
 				// select an object.
 				// Adding select rods/strings
-				// if (Input.GetMouseButtonDown (0)) {
+				if (Input.GetMouseButtonDown (0)) {
 					RaycastHit hit;
 					Ray ray = viewCam.ScreenPointToRay (Input.mousePosition);
 					if (Physics.Raycast (ray, out hit)) {
 						selected = hit.transform.gameObject;
 					}
-				// }
+				}
 				// follow mouse position for the meanwhile.
 				if (selected != null) {
 					if (selected.transform.tag == "Node") {
@@ -114,13 +114,16 @@ public class WorldManager : MonoBehaviour {
 							Destroy (selected);
 							CleanUp ();
 						} 
-					} else {
+					} 
+					/*
+					else {
 						selected.transform.FindChild ("Cylinder").transform.GetComponent<Renderer> ().material.color = Color.red;
 						if (Input.GetKeyDown (KeyCode.Delete) || Input.GetKey (KeyCode.Backspace)) {
 							Destroy (selected);
 							CleanUp ();
 						} 
 					}
+					*/
 				}
 			} else if (mode == Mode.Place_Node) {
 				if (selected == null)
@@ -372,10 +375,12 @@ public class WorldManager : MonoBehaviour {
 		}
 	}
 
-	void CleanUp() {
+	public void CleanUp() {
 		if (selected != null) {
 			if (selected.transform.tag == "Node")
 				Destroy (selected);
+			else 
+				selected.transform.FindChild ("Cylinder").transform.GetComponent<Renderer> ().material.color = Color.white;
 			selected = null;
 		}
 		if (topNode != null)

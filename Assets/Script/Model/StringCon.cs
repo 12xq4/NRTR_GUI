@@ -39,6 +39,12 @@ public class StringCon : MonoBehaviour {
 		transform.FindChild("Cylinder").transform.GetComponent<Renderer> ().material.color = Color.black;
 	}
 
+	void OnMouseOver() {
+		if (Input.GetKeyDown (KeyCode.Delete) || Input.GetKeyDown (KeyCode.Backspace)) {
+			Destroy (this.gameObject);
+		} 
+	}
+
 	public void AssignNode ( GameObject tp, GameObject bt)
 	{
 		top = tp;
