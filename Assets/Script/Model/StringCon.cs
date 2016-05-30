@@ -6,9 +6,9 @@ public class StringCon : MonoBehaviour {
 	GameObject top;
 	GameObject bot;
 
-	public static float stiffness;
-	public static float damping;
-	public static float pretension;
+	public static float stiffness = 1000;
+	public static float damping = 10;
+	public static float pretension = 1000;
 
 	// Use this for initialization
 	void Start () {
@@ -75,6 +75,6 @@ public class StringCon : MonoBehaviour {
 	}
 
 	public string ToString() {
-		return "     - [" + top.GetComponent<Node>().nodeName + ", " + bot.GetComponent<Node>().nodeName + "]";
+		return "    - [" + top.GetComponent<Node>().nodeName + ", " + bot.GetComponent<Node>().nodeName + "]";
 	}
 }

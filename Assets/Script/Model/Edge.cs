@@ -6,8 +6,8 @@ public class Edge : MonoBehaviour {
 	GameObject top;
 	GameObject bot;
 
-	public static float density;
-	public static float radius; 
+	public static float density = 1;
+	public static float radius = 1; 
 	// Use this for initialization
 	void Start () {
 	
@@ -72,6 +72,6 @@ public class Edge : MonoBehaviour {
 	}
 
 	public string ToString() {
-		return "     - [" + top.GetComponent<Node>().nodeName + ", " + bot.GetComponent<Node>().nodeName + "]";
+		return "    - [" + top.GetComponent<Node>().nodeName + ", " + bot.GetComponent<Node>().nodeName + "]";
 	}
 }

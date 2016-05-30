@@ -56,6 +56,6 @@ public class Node : MonoBehaviour {
 	}
 
 	public string ToString() {
-		return "  " + nodeName + ": [" + x + ", " + z + ", " + y + "]";
+		return "  " + nodeName + ": [" + x + ", " + y + ", " + z + "]";
 	}
 }

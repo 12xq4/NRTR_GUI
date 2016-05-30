@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using System.IO;
 using System.Collections.Generic;
 using System.Text;
+using System.Diagnostics;
 using System;
 using UnityEditor;
 using UnityEngine.EventSystems;
@@ -11,6 +12,7 @@ using UnityEngine.EventSystems;
 using YamlDotNet.RepresentationModel;
 
 /*	Notes:
+ * Phase 1 checklist
  * Reverse z and y for users' understanding. 						(Done)
  * Define a structure which can read YAML and import it into scene;	(Done)
  * Yaml use spaces for indentation, not tabs. Make sure i fix that	(Done)
@@ -19,7 +21,13 @@ using YamlDotNet.RepresentationModel;
  * Calculate the world center instead of setting it to (0,10,0)		(Done)
  * Implement Material information and a form system to set material. Then change the parser to accept material information. 
  * Push it to the internet, build as web application.
- * Phase 1 checklist
+ * 
+ * 
+ * Phase 2 checklist
+ * Improve usablilty by introducing movements by axis. 				(Continually)
+ * - This will involve changing the existing click & hold system of selection.
+ * Intergrate directly with NTRT by running commandline from Unity
+ * - Create a save system first.
  * 
  * Constant Objective:
  * Debug, Keep a test suite
@@ -62,6 +70,9 @@ public class WorldManager : MonoBehaviour {
 
 	// Controls
 	bool clicked;
+
+	// Used for saving
+	string filepath;
 
 	// Use this for initialization
 	void Start () {
@@ -361,14 +372,14 @@ public class WorldManager : MonoBehaviour {
 		}
 		// restricting placement of nodes below 0 height. i.e. in the ground.
 		if (selected.transform.position.y < 0) {
-			Debug.Log ("Cannot Place Node below ground");
+			UnityEngine.Debug.Log ("Cannot Place Node below ground");
 			Vector3 newPos = selected.transform.position;
 			newPos.y = 0;
 			selected.transform.position = newPos;
 		}
 
-		Coord.text = "X: " + selected.transform.position.x + "    " + "Y: " + selected.transform.position.z + "    "
-			+ "Z: " + selected.transform.position.y + "\n";
+		Coord.text = "X: " + selected.transform.position.x + "    " + "Y: " + selected.transform.position.y + "    "
+			+ "Z: " + selected.transform.position.z + "\n";
 
 		if (OnMoved != null) {
 			OnMoved (selected);
@@ -390,14 +401,14 @@ public class WorldManager : MonoBehaviour {
 	}
 
 	public void ImportFromYAML() {
-		var path = EditorUtility.OpenFilePanel ("Please select your import YAML file.", "", "yaml");
-		if (path.Length != 0){
+		filepath = EditorUtility.OpenFilePanel ("Please select your import YAML file.", "", "yaml");
+		if (filepath.Length != 0){
 			var pass = new StringBuilder();
 			try 
 			{
 				// Create an instance of StreamReader to read from a file.
 				// The using statement also closes the StreamReader.
-				using (StreamReader sr = new StreamReader(path)) 
+				using (StreamReader sr = new StreamReader(filepath)) 
 				{
 					string line;
 					// Read and display lines from the file until the end of 
@@ -439,9 +450,9 @@ public class WorldManager : MonoBehaviour {
 							if (count == 1) {
 								pos.x = Mathf.Round (float.Parse (num.ToString ()));
 							} else if (count == 2) {
-								pos.z = Mathf.Round (float.Parse (num.ToString ()));
-							} else {
 								pos.y = Mathf.Round (float.Parse (num.ToString ()));
+							} else {
+								pos.z = Mathf.Round (float.Parse (num.ToString ()));
 							}
 						}
 						GameObject clone = Instantiate (node, pos, Quaternion.Euler (0, 0, 0)) as GameObject;
@@ -532,6 +543,107 @@ public class WorldManager : MonoBehaviour {
 		// Debug.Log(output);
 		}
 	}
+
+	/*
+	 * This is a helper method for writing/saving to a file.
+	 * 
+	 */
+	public void WriteFile (string path) {
+		var Nodes = GameObject.FindGameObjectsWithTag ("Node");
+		var Rods = GameObject.FindGameObjectsWithTag ("Rod");
+		var Strs = GameObject.FindGameObjectsWithTag ("String");
+		if (File.Exists (path)) {
+			var file = File.CreateText ("temp.txt");
+			if (Nodes.Length != 0) {
+				file.WriteLine ("nodes:");
+				for (int i = 0; i < Nodes.Length; i++) {
+					file.WriteLine (Nodes [i].GetComponent<Node> ().ToString ());
+				}
+			}
+			if (!(Rods.Length == 0 && Strs.Length == 0)) {
+				file.WriteLine ("pair_groups:");
+				if (Rods.Length != 0) {
+					file.WriteLine ("  rod:");
+					for (int i = 0; i < Rods.Length; i++) {
+						file.WriteLine (Rods [i].GetComponent<Edge> ().ToString ());
+					}
+				}
+				if (Strs.Length != 0) {
+					file.WriteLine ("  string:");
+					for (int i = 0; i < Strs.Length; i++) {
+						file.WriteLine (Strs [i].GetComponent<StringCon> ().ToString ());
+					}
+				}
+				file.WriteLine ("builders:");
+				if (Rods.Length != 0) {
+					file.WriteLine ("  rod:");
+					file.WriteLine ("    class: tgRodInfo");
+					file.WriteLine ("    parameters:");
+					file.WriteLine ("      density: " + Edge.density);
+					file.WriteLine ("      radius: " + Edge.radius);
+				}
+				if (Strs.Length != 0) {
+					file.WriteLine ("  string:");
+					file.WriteLine ("    class: tgBasicActuatorInfo");
+					file.WriteLine ("    parameters:");
+					file.WriteLine ("      stiffness: " + StringCon.stiffness);
+					file.WriteLine ("      damping: " + StringCon.damping);
+					file.WriteLine ("      pretension: " + StringCon.pretension);
+				}
+			}
+			file.Close ();
+			File.Replace ("temp.txt", path, null); 
+		} else {
+			var file = File.CreateText (path);
+			if (Nodes.Length != 0) {
+				file.WriteLine ("nodes:");
+				for (int i = 0; i < Nodes.Length; i++) {
+					file.WriteLine (Nodes [i].GetComponent<Node> ().ToString ());
+				}
+			}
+			if (!(Rods.Length == 0 && Strs.Length == 0)) {
+				file.WriteLine ("pair_groups:");
+				if (Rods.Length != 0) {
+					file.WriteLine ("  rod:");
+					for (int i = 0; i < Rods.Length; i++) {
+						file.WriteLine (Rods [i].GetComponent<Edge> ().ToString ());
+					}
+				}
+				if (Strs.Length != 0) {
+					file.WriteLine ("  string:");
+					for (int i = 0; i < Strs.Length; i++) {
+						file.WriteLine (Strs [i].GetComponent<StringCon> ().ToString ());
+					}
+				}
+				file.WriteLine ("builders:");
+				if (Rods.Length != 0) {
+					file.WriteLine ("  rod:");
+					file.WriteLine ("    class: tgRodInfo");
+					file.WriteLine ("    parameters:");
+					file.WriteLine ("      density: " + Edge.density);
+					file.WriteLine ("      radius: " + Edge.radius);
+				}
+				if (Strs.Length != 0) {
+					file.WriteLine ("  string:");
+					file.WriteLine ("    class: tgBasicActuatorInfo");
+					file.WriteLine ("    parameters:");
+					file.WriteLine ("      stiffness: " + StringCon.stiffness);
+					file.WriteLine ("      damping: " + StringCon.damping);
+					file.WriteLine ("      pretension: " + StringCon.pretension);
+				}
+			}
+			file.Close ();
+		}
+	}
+
+	public void Save () {
+		if (string.IsNullOrEmpty (filepath)) {
+			var filename = EditorUtility.SaveFilePanel("Save your work as a YAML file.", "", "build.yaml", "yaml");
+		}
+		if (filepath.Length != 0) {
+			WriteFile (filepath);
+		}
+	}
 		
 	/*
 	 	* This method builds the Yaml file.
@@ -541,92 +653,18 @@ public class WorldManager : MonoBehaviour {
 	public void ExportToYAML() {
 		var filename = EditorUtility.SaveFilePanel("Save your work as a YAML file.", "", "build.yaml", "yaml");
 		if (filename.Length != 0) {
-			var Nodes = GameObject.FindGameObjectsWithTag ("Node");
-			var Rods = GameObject.FindGameObjectsWithTag ("Rod");
-			var Strs = GameObject.FindGameObjectsWithTag ("String");
+			WriteFile (filename);
+		}
+	}
 
-			if (File.Exists (filename)) {
-				var file = File.CreateText ("temp.txt");
-				if (Nodes.Length != 0) {
-					file.WriteLine ("nodes:");
-					for (int i = 0; i < Nodes.Length; i++) {
-						file.WriteLine (Nodes [i].GetComponent<Node> ().ToString ());
-					}
-				}
-				if (!(Rods.Length == 0 && Strs.Length == 0)) {
-					file.WriteLine ("pair_groups:");
-					if (Rods.Length != 0) {
-						file.WriteLine ("  rod:");
-						for (int i = 0; i < Rods.Length; i++) {
-							file.WriteLine (Rods [i].GetComponent<Edge> ().ToString ());
-						}
-					}
-					if (Strs.Length != 0) {
-						file.WriteLine ("  string:");
-						for (int i = 0; i < Strs.Length; i++) {
-							file.WriteLine (Strs [i].GetComponent<StringCon> ().ToString ());
-						}
-					}
-					file.WriteLine ("builders:");
-					if (Rods.Length != 0) {
-						file.WriteLine ("  rod:");
-						file.WriteLine ("    class: tgRodInfo");
-						file.WriteLine ("    parameters:");
-						file.WriteLine ("      density: " + Edge.density);
-						file.WriteLine ("      radius: " + Edge.radius);
-					}
-					if (Strs.Length != 0) {
-						file.WriteLine ("  string:");
-						file.WriteLine ("    class: tgBasicActuatorInfo");
-						file.WriteLine ("    parameters:");
-						file.WriteLine ("      stiffness: " + StringCon.stiffness);
-						file.WriteLine ("      damping: " + StringCon.damping);
-						file.WriteLine ("      pretension: " + StringCon.pretension);
-					}
-				}
-				file.Close ();
-				File.Replace ("temp.txt", filename, null); 
-			} else {
-				var file = File.CreateText (filename);
-				if (Nodes.Length != 0) {
-					file.WriteLine ("nodes:");
-					for (int i = 0; i < Nodes.Length; i++) {
-						file.WriteLine (Nodes [i].GetComponent<Node> ().ToString ());
-					}
-				}
-				if (!(Rods.Length == 0 && Strs.Length == 0)) {
-					file.WriteLine ("pair_groups:");
-					if (Rods.Length != 0) {
-						file.WriteLine ("  rod:");
-						for (int i = 0; i < Rods.Length; i++) {
-							file.WriteLine (Rods [i].GetComponent<Edge> ().ToString ());
-						}
-					}
-					if (Strs.Length != 0) {
-						file.WriteLine ("  string:");
-						for (int i = 0; i < Strs.Length; i++) {
-							file.WriteLine (Strs [i].GetComponent<StringCon> ().ToString ());
-						}
-					}
-					file.WriteLine ("builders:");
-					if (Rods.Length != 0) {
-						file.WriteLine ("  rod:");
-						file.WriteLine ("    class: tgRodInfo");
-						file.WriteLine ("    parameters:");
-						file.WriteLine ("      density: " + Edge.density);
-						file.WriteLine ("      radius: " + Edge.radius);
-					}
-					if (Strs.Length != 0) {
-						file.WriteLine ("  string:");
-						file.WriteLine ("    class: tgBasicActuatorInfo");
-						file.WriteLine ("    parameters:");
-						file.WriteLine ("      stiffness: " + StringCon.stiffness);
-						file.WriteLine ("      damping: " + StringCon.damping);
-						file.WriteLine ("      pretension: " + StringCon.pretension);
-					}
-				}
-				file.Close ();
-			}
+	public void TestYAML () {
+		var path = EditorUtility.OpenFilePanel ("Please input your YAML builder file path.", "", "");
+		if (path.Length != 0) {
+			Save ();
+			Process ntrt = new Process ();
+			ntrt.StartInfo.FileName = path;
+			ntrt.StartInfo.Arguments = filepath;
+			ntrt.Start ();
 		}
 	}
 }
