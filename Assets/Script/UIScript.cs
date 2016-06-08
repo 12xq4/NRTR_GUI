@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using UnityEngine.UI;
+using UnityEditor;
 /*
  * Script that contains list of UI functions. This will be attached to the Manager as well. 
 */
@@ -11,6 +12,7 @@ public class UIScript : MonoBehaviour {
 	public InputField stiffnessView;
 	public InputField dampingView;
 	public InputField pretensionView;
+	public InputField pathView;
 
 	void Start() {
 		ChangeDisplay ();
@@ -92,5 +94,18 @@ public class UIScript : MonoBehaviour {
 		stiffnessView.placeholder.GetComponent<Text>().text = "Stiffness: " + StringCon.stiffness;
 		dampingView.placeholder.GetComponent<Text>().text = "Damping: " + StringCon.damping;
 		pretensionView.placeholder.GetComponent<Text>().text = "Pretension: " + StringCon.pretension;
+		var path = PlayerPrefs.GetString ("YAML Path");
+		if (string.IsNullOrEmpty (path))
+			pathView.placeholder.GetComponent<Text> ().text = "Please select the path to your YAML Builder.";
+		else
+			pathView.placeholder.GetComponent<Text> ().text = path;
+	}
+
+	public void BrosweForYAMLBuilder () {
+		var path = EditorUtility.OpenFilePanel ("Please select your import YAML builder.", "", "");
+		if (path.Length > 0) {
+			PlayerPrefs.SetString ("YAML Path", path);
+			ChangeDisplay ();
+		}
 	}
 }

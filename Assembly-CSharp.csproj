@@ -45,13 +45,24 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+     <Compile Include="Assets\FileSelector\Example\FileSelectorExample.cs" />
+     <Compile Include="Assets\FileSelector\FileSelector.cs" />
+     <Compile Include="Assets\FileSelector\FileSelectorStyles.cs" />
+     <Compile Include="Assets\Script\CommManager.cs" />
      <Compile Include="Assets\Script\Model\Edge.cs" />
      <Compile Include="Assets\Script\Model\Node.cs" />
      <Compile Include="Assets\Script\Model\StringCon.cs" />
      <Compile Include="Assets\Script\UIScript.cs" />
      <Compile Include="Assets\Script\WorldManager.cs" />
+     <Compile Include="Assets\UniFileBrowser Assets\Demo\UniFileBrowserExample.cs" />
+     <None Include="Assets\UniFileBrowser Assets\Documentation\UniFileBrowser 2.0 Upgrade Guide.txt" />
+     <None Include="Assets\UniFileBrowser Assets\Documentation\UniFileBrowser changelog.txt" />
+     <None Include="Assets\FileSelector\readme.txt" />
      <None Include="Assets\Plugins\YamlDotNet\YamlDotNet.license.txt" />
      <None Include="Assets\Plugins\YamlDotNet\Readme.txt" />
+ <Reference Include="Assembly-UnityScript-firstpass">
+ <HintPath>/Users/jackqiao/Documents/NTRT GUI/Library/ScriptAssemblies/Assembly-UnityScript-firstpass.dll</HintPath>
+ </Reference>
  <Reference Include="UnityEngine.UI">
  <HintPath>/Applications/Unity/Unity.app/Contents/UnityExtensions/Unity/GUISystem/UnityEngine.UI.dll</HintPath>
  </Reference>

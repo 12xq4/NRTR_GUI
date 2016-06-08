@@ -39,6 +39,12 @@ public class Node : MonoBehaviour {
 	void Update () {
 	}
 
+	public void Initialize(int x, int y, int z) {
+		this.x = x;
+		this.y = y >= 0 ? y : 0;
+		this.z = z;
+	}
+
 	void UpdatePosition(GameObject changed) {
 		if (changed = gameObject) {
 			x = Mathf.RoundToInt(transform.position.x);
