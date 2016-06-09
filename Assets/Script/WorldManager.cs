@@ -422,7 +422,7 @@ public class WorldManager : MonoBehaviour {
 		}
 	}
 
-	public void CleanUp() {
+	void CleanUp() {
 		if (selected != null) {
 			if (selected.transform.tag == "Node")
 				Destroy (selected);
