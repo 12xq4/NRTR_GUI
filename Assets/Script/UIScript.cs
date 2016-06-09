@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using UnityEngine.UI;
-using UnityEditor;
+
 /*
  * Script that contains list of UI functions. This will be attached to the Manager as well. 
 */
@@ -102,10 +102,11 @@ public class UIScript : MonoBehaviour {
 	}
 
 	public void BrosweForYAMLBuilder () {
-		var path = EditorUtility.OpenFilePanel ("Please select your import YAML builder.", "", "");
-		if (path.Length > 0) {
-			PlayerPrefs.SetString ("YAML Path", path);
-			ChangeDisplay ();
-		}
+		UniFileBrowser.use.OpenFileWindow (delegate (string path) {
+			if (path.Length > 0) {
+				PlayerPrefs.SetString ("YAML Path", path);
+				ChangeDisplay ();
+			}
+		});
 	}
 }
