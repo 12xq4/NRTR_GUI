@@ -1,7 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.IO;
-using UnityEditor;
 using System.Diagnostics;
 using System;
 using System.Text;
