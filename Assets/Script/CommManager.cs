@@ -175,6 +175,7 @@ public class CommManager : MonoBehaviour {
 
 	public void ImportFromYAML() {
 		//filepath = EditorUtility.OpenFilePanel ("Please select your import YAML file.", "", "yaml");
+		gameObject.GetComponent<WorldManager>().ClearScene();
 		WorldManager.editing = false;
 		UniFileBrowser.use.OpenFileWindow(ImportFile);
 		WorldManager.editing = true;
@@ -269,6 +270,9 @@ public class CommManager : MonoBehaviour {
 				}
 			}
 			file.Close ();
+			if (String.IsNullOrEmpty (filepath)) {
+				filepath = path;
+			}
 		}
 	}
 

@@ -1,4 +1,4 @@
 sceneSetups:
-- path: Assets/Scene/Simple.unity
+- path: Assets/Scene/Combine.unity
   isLoaded: 1
   isActive: 1

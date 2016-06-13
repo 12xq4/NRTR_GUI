@@ -52,6 +52,7 @@
      <Compile Include="Assets\Script\Model\Edge.cs" />
      <Compile Include="Assets\Script\Model\Node.cs" />
      <Compile Include="Assets\Script\Model\StringCon.cs" />
+     <Compile Include="Assets\Script\Model\TgStructure.cs" />
      <Compile Include="Assets\Script\UIScript.cs" />
      <Compile Include="Assets\Script\WorldManager.cs" />
      <Compile Include="Assets\UniFileBrowser Assets\Demo\UniFileBrowserExample.cs" />
