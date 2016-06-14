@@ -186,6 +186,9 @@ public class CommManager : MonoBehaviour {
 	 * 
 	 */
 	void WriteFile (string path) {
+		if (!path.Contains (".yaml")) {
+			path = path + ".yaml";
+		}
 		var Nodes = GameObject.FindGameObjectsWithTag ("Node");
 		var Rods = GameObject.FindGameObjectsWithTag ("Rod");
 		var Strs = GameObject.FindGameObjectsWithTag ("String");
