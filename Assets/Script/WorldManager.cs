@@ -143,7 +143,7 @@ public class WorldManager : MonoBehaviour {
 					if (Physics.Raycast (ray, out hit)) {
 						if (hit.transform.tag == "Node" && topNode == null)
 							topNode = hit.transform.gameObject;
-						else if (hit.transform.tag == "Node" && topNode != null && botNode == null) // some unnecessary safety check.
+						else if (hit.transform !=  topNode.transform && hit.transform.tag == "Node" && topNode != null && botNode == null) // some unnecessary safety check.
 						botNode = hit.transform.gameObject;
 					}
 				}
@@ -160,7 +160,7 @@ public class WorldManager : MonoBehaviour {
 					if (Physics.Raycast (ray, out hit)) {
 						if (hit.transform.tag == "Node" && topNode == null)
 							topNode = hit.transform.gameObject;
-						else if (hit.transform.tag == "Node" && topNode != null && botNode == null) // some unnecessary safety check.
+						else if (hit.transform !=  topNode.transform && hit.transform.tag == "Node" && topNode != null && botNode == null) // some unnecessary safety check.
 						botNode = hit.transform.gameObject;
 					}
 				}
